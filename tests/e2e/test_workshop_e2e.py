@@ -25,16 +25,32 @@ def test_user_edits_car_and_change_survives_reload(page, live_server):
     page.get_by_label("Color", exact=False).fill("White")
     page.get_by_role("button", name="Create car").click()
 
+    # 等待详情页加载完成
+    page.wait_for_url(re.compile(r"/cars/\d+$"))
+
     # 2. 点击编辑链接
     page.get_by_role("link", name="Edit car").click()
+    # 等待编辑页表单加载
+    page.wait_for_selector('input[name="model"]')
 
-    # 3. 修改型号和年份
-    page.get_by_label("Model", exact=True).fill("Accord")
-    page.get_by_label("Year", exact=True).fill("2023")
+    # 3. 修改型号和年份（先全选原有内容再输入，确保完全替换）
+    model_input = page.get_by_label("Model", exact=True)
+    model_input.click()
+    model_input.press("Control+A")  # 全选原有文本
+    model_input.fill("Accord")
+
+    year_input = page.get_by_label("Year", exact=True)
+    year_input.click()
+    year_input.press("Control+A")
+    year_input.fill("2023")
+
     page.get_by_role("button", name="Save changes").click()
 
-    # 4. 断言：详情页标题更新为 Honda Accord
-    expect(page.get_by_role("heading", name="Honda Accord")).to_be_visible()
+    # 4. 等待保存后跳转回详情页，先等标题元素出现再断言可见
+    page.wait_for_url(re.compile(r"/cars/\d+$"))
+    heading = page.get_by_role("heading", name="Honda Accord")
+    heading.wait_for(timeout=10000)
+    expect(heading).to_be_visible()
 
     # 5. 刷新页面，再次断言修改依然存在
     page.reload()
