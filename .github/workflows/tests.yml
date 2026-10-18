@@ -1,0 +1,46 @@
+name: Cars CRUD Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      # 步骤1：拉取仓库代码到虚拟机
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # 步骤2：配置 Python 3.12 环境
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # 步骤3：安装项目所有测试依赖
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      # 步骤4：安装 Playwright Chromium 及 Linux 系统依赖
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      # 步骤5：运行单元测试
+      - name: Run unit tests
+        run: python -m pytest tests/unit -q
+
+      # 步骤6：运行集成测试
+      - name: Run integration tests
+        run: python -m pytest tests/integration -q
+
+      # 步骤7：运行 API 测试
+      - name: Run API tests
+        run: python -m pytest tests/api -q
+
+      # 步骤8：运行 E2E 端到端测试
+      - name: Run E2E tests
+        run: python -m pytest tests/e2e -q
