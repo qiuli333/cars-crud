@@ -1,4 +1,4 @@
-name: Cars CRUD Tests
+name: Cars CRUD - Test and Publish
 
 on:
   pull_request:
@@ -10,22 +10,24 @@ permissions:
   contents: read
 
 jobs:
-  # 原有测试作业：PR 和 push 都会执行
   tests:
+    name: Run application tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - name: Install test dependencies
-        run: python -m pip install -r requirements-dev.txt
+      - name: Install application and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
 
-      - name: Install Playwright Chromium
+      - name: Install Chromium for E2E tests
         run: python -m playwright install --with-deps chromium
 
       - name: Run unit tests
@@ -40,13 +42,13 @@ jobs:
       - name: Run E2E tests
         run: python -m pytest tests/e2e -q
 
-  # 新增发布作业：仅 push 到 main 且测试通过后执行
   publish:
+    name: Build and publish Docker image
     needs: tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
@@ -62,5 +64,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/cars-crud:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cars-crud:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/cars-crud:sha-${{ github.sha }}
